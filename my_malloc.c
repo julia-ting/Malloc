@@ -1,6 +1,13 @@
 #include "my_malloc.h"
 #include <math.h>
 
+/* 
+	Julia Ting
+	CS 2110
+	Final Malloc Homework
+	12/5/2013
+*/
+
 /* You *MUST* use this macro when calling my_sbrk to allocate the 
  * appropriate size. Failure to do so may result in an incorrect
  * grading!
@@ -13,9 +20,6 @@
  * warned.
  */
  
- /* DELETE THIS BEFORE YOU TURN IT IN!!! */
-#define DEBUG
-
 #ifdef DEBUG
 #define DEBUG_PRINT(x) printf(x)
 #else
@@ -59,8 +63,6 @@ metadata_t* freelist[8];
  * freelist[7] -> 2048
  */
 
-// TODO: MAKE SURE ALL APPROPRIATE ERROR CODES ARE SET FOR MYMALLOC
-
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 /*~~~~~~~~~~~~~~~~~~~~~~~~~MY_MALLOC~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
@@ -73,28 +75,19 @@ void* my_malloc(size_t size)
 	
 	/* First malloc call because heap is not set at all */
 	if (heap == NULL) {
-		metadata_t *newSpace = expandHeap;
-		heap = newSpace;
+		// This is causing a segfault and I don't know what about it
+		// in my tests but only after I split manually. And
+		// in my_sbrk. HNNNNNNNNNNNNNNGGGGGGGGGGGG
+		metadata_t *newSpace = (metadata_t*)expandHeap;
 		/* Check to see if expandHeap worked or not */
-		if (heap == NULL) {
+		if (newSpace == NULL) {
 			ERRNO = OUT_OF_MEMORY;
 			return NULL;
 		}
+		heap = newSpace;
 		newSpace->size = 2048;
 		newSpace->in_use = 0;
-		newSpace->next = NULL;
-		newSpace->prev = NULL;
-		if (freelist[7] == NULL) {
-			freelist[7] = newSpace;
-		/* Shouldn't need this but did it anyway cause im dumblolz */
-		} else {
-			metadata_t *curr = freelist[7];
-			while (curr->next != NULL) {
-				curr = curr->next;
-			}
-			curr->next = newSpace;
-			newSpace->prev = curr;
-		}
+		addToFreelist(7, newSpace);
 	}
 	/* If list index is -1, it means the size does not fit into any
 	 of the blocks and is > 2048. */
@@ -294,7 +287,6 @@ int findSize(size_t size) {
 
 void* my_calloc(size_t num, size_t size)
 {
-	
 	void *mal = my_malloc(num*size);
 	if (mal == NULL) {
   		ERRNO = OUT_OF_MEMORY;
@@ -304,7 +296,7 @@ void* my_calloc(size_t num, size_t size)
   	char *end = ptr + (num*size);
   	while (ptr < end) {
   		*ptr = 0;
-  		ptr++;
+  		ptr = ptr+1;
   	}
   	ERRNO = NO_ERROR;
   	return mal;
@@ -360,7 +352,6 @@ metadata_t * checkBuddy(metadata_t *one) {
 	/* You didn't find the right buddyAddress lolz */
 	if (one->size != buddy->size) {
 		ERRNO = OUT_OF_MEMORY;
-		printf("buddyAddress not right");
 		return NULL;
 	}
 	int listIndex = findSize((size_t)(one->size)-metaSize);
